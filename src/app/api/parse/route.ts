@@ -23,21 +23,28 @@ export async function POST(req: Request) {
     let toc: { id: string, text: string, level: number }[] = [];
     const domain = new URL(url).hostname;
 
-    // Special handling for GitHub READMEs
+    // Special handling for GitHub
     if (domain === 'github.com') {
-      const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
-      if (match) {
-        const [, owner, repo] = match;
-        const apiResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
-          headers: {
-            'Accept': 'application/vnd.github.v3.raw',
-            ...(process.env.GITHUB_SECRET ? { 'Authorization': `Bearer ${process.env.GITHUB_SECRET}` } : {})
-          }
-        });
-        
+      let rawUrl = '';
+      
+      // Handle blob links (e.g., github.com/user/repo/blob/main/README.md)
+      if (url.includes('/blob/')) {
+        rawUrl = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+      } 
+      // Handle repo root (default to README)
+      else {
+        const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+        if (match) {
+          const [, owner, repo] = match;
+          rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`;
+        }
+      }
+
+      if (rawUrl) {
+        const apiResponse = await fetch(rawUrl);
         if (apiResponse.ok) {
           markdown = await apiResponse.text();
-          title = `${owner}/${repo} README`;
+          title = url.split('/').pop() || 'GitHub File';
         }
       }
     }
