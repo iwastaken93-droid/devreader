@@ -65,20 +65,29 @@ export async function POST(req: Request) {
     }
 
     // Check if article already exists for user
-    let savedArticle = await prisma.article.findUnique({
-      where: { url }
-    });
+    let savedArticle;
+    try {
+      savedArticle = await prisma.article.findUnique({
+        where: { url }
+      });
 
-    if (!savedArticle) {
-       savedArticle = await prisma.article.create({
-          data: {
-              title: title || 'Untitled',
-              url,
-              domain,
-              content: markdown,
-              userId: user.id
-          }
-       });
+      if (!savedArticle) {
+        savedArticle = await prisma.article.create({
+            data: {
+                title: title || 'Untitled',
+                url,
+                domain,
+                content: markdown,
+                userId: user.id
+            }
+        });
+      }
+    } catch (dbError: any) {
+      console.error('Database Error:', dbError);
+      return NextResponse.json({ 
+        error: 'Database error. Did you run prisma db push?',
+        details: dbError.message 
+      }, { status: 500 });
     }
 
     return NextResponse.json({ 
@@ -87,8 +96,11 @@ export async function POST(req: Request) {
         title
     });
 
-  } catch (error) {
-    console.error('Error parsing URL:', error);
-    return NextResponse.json({ error: 'Failed to process URL' }, { status: 500 });
+  } catch (error: any) {
+    console.error('General Parsing Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to process URL',
+      details: error.message 
+    }, { status: 500 });
   }
 }
