@@ -93,7 +93,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
         article: savedArticle,
         markdown,
-        title
+        title,
+        saved: savedArticle.saved
     });
 
   } catch (error: any) {

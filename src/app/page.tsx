@@ -12,6 +12,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [article, setArticle] = useState<any>(null)
+  const [isArticleSaved, setIsArticleSaved] = useState(false)
+  const [savingArticle, setSavingArticle] = useState(false)
   
   // Snippet capture state
   const [selection, setSelection] = useState("")
@@ -46,6 +48,7 @@ export default function Home() {
       }
 
       setArticle(data)
+      setIsArticleSaved(data.saved || false)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -108,6 +111,28 @@ export default function Home() {
     }
   };
 
+  const toggleSaveArticle = async () => {
+    if (!article?.article?.id) return;
+    setSavingArticle(true);
+    try {
+      const res = await fetch("/api/articles/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: article.article.id,
+          saved: !isArticleSaved
+        }),
+      });
+      if (res.ok) {
+        setIsArticleSaved(!isArticleSaved);
+      }
+    } catch (err) {
+      console.error("Failed to toggle save article", err);
+    } finally {
+      setSavingArticle(false);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center space-y-12 py-10">
       
@@ -162,9 +187,29 @@ export default function Home() {
                   <h2 className="text-3xl font-spaceGrotesk font-bold text-[var(--on-surface)] mb-2">
                     {article.title}
                   </h2>
-                  <a href={article.article.url} target="_blank" rel="noopener noreferrer" className="text-sm font-inter text-[var(--primary)] hover:underline flex items-center gap-1">
-                    <LinkIcon className="h-4 w-4" /> Original Source
-                  </a>
+                  <div className="flex items-center gap-4">
+                    <a href={article.article.url} target="_blank" rel="noopener noreferrer" className="text-sm font-inter text-[var(--primary)] hover:underline flex items-center gap-1">
+                      <LinkIcon className="h-4 w-4" /> Original Source
+                    </a>
+                    <button 
+                      onClick={toggleSaveArticle}
+                      disabled={savingArticle}
+                      className={`text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+                        isArticleSaved 
+                        ? 'bg-[var(--primary)] text-[var(--on-primary)]' 
+                        : 'bg-[var(--surface-container-high)] text-[var(--on-surface)] hover:bg-[var(--surface-container-highest)]'
+                      }`}
+                    >
+                      {savingArticle ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : isArticleSaved ? (
+                        <FileText className="h-3 w-3" />
+                      ) : (
+                        <Save className="h-3 w-3" />
+                      )}
+                      {isArticleSaved ? "Saved to Library" : "Save to Library"}
+                    </button>
+                  </div>
                </div>
                <div className="bg-[var(--surface-container-lowest)] p-3 rounded-xl border border-[var(--surface-container-high)]">
                   <FileText className="h-6 w-6 text-[var(--outline-variant)]" />
