@@ -20,6 +20,7 @@ export async function POST(req: Request) {
 
     let markdown = '';
     let title = '';
+    let toc: { id: string, text: string, level: number }[] = [];
     const domain = new URL(url).hostname;
 
     // Special handling for GitHub READMEs
@@ -64,7 +65,6 @@ export async function POST(req: Request) {
       markdown = turndownService.turndown(article.content || "");
 
       // Generate TOC
-      const toc: { id: string, text: string, level: number }[] = [];
       const headings = document.querySelectorAll('h1, h2, h3');
       headings.forEach((heading: any, index: number) => {
         const text = heading.textContent?.trim() || '';
