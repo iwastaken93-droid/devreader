@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
+import { parseHTML } from 'linkedom';
 import TurndownService from 'turndown';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -46,8 +46,8 @@ export async function POST(req: Request) {
       const response = await fetch(url);
       const html = await response.text();
 
-      const dom = new JSDOM(html, { url });
-      const reader = new Readability(dom.window.document);
+      const { document } = parseHTML(html);
+      const reader = new Readability(document);
       const article = reader.parse();
 
       if (!article) {

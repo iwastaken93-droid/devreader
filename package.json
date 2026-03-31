@@ -14,7 +14,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
-    "jsdom": "^29.0.1",
+    "linkedom": "^0.18.12",
     "lucide-react": "^1.7.0",
     "marked": "^17.0.5",
     "next": "16.2.1",
@@ -29,7 +29,6 @@
   "devDependencies": {
     "@prisma/client": "^5.22.0",
     "@tailwindcss/postcss": "^4",
-    "@types/jsdom": "^28.0.1",
     "@types/marked": "^5.0.2",
     "@types/node": "^20",
     "@types/react": "^19",
