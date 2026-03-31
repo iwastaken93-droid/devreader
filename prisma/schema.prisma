@@ -83,6 +83,9 @@ model Article {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   snippets     Snippet[]
+
+  // Optimization: Added index on userId to speed up list queries for a user
+  @@index([userId])
 }
 
 model Snippet {
@@ -99,4 +102,7 @@ model Snippet {
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+
+  // Optimization: Added index on userId to speed up list queries for a user
+  @@index([userId])
 }
