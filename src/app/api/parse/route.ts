@@ -5,6 +5,57 @@ import TurndownService from 'turndown';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Security: Validate URLs to prevent SSRF
+function isValidUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+
+    // Only allow HTTP/HTTPS
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = url.hostname;
+
+    // Block common internal/local hostnames
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]' ||
+      hostname.endsWith('.internal') ||
+      hostname.endsWith('.local')
+    ) {
+      return false;
+    }
+
+    // Basic IP validation (doesn't catch all edge cases like octal, but covers typical SSRF strings)
+    // For a more robust check in a real environment, you'd resolve the hostname to an IP and check it.
+    const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const match = hostname.match(ipv4Pattern);
+    if (match) {
+      const octet1 = parseInt(match[1], 10);
+      const octet2 = parseInt(match[2], 10);
+
+      // 10.0.0.0/8
+      if (octet1 === 10) return false;
+      // 172.16.0.0/12
+      if (octet1 === 172 && octet2 >= 16 && octet2 <= 31) return false;
+      // 192.168.0.0/16
+      if (octet1 === 192 && octet2 === 168) return false;
+      // 169.254.0.0/16 (AWS metadata, etc)
+      if (octet1 === 169 && octet2 === 254) return false;
+      // 127.0.0.0/8
+      if (octet1 === 127) return false;
+      // 0.0.0.0/8
+      if (octet1 === 0) return false;
+    }
+
+    return true;
+  } catch {
+    return false; // Invalid URL string
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
@@ -18,9 +69,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
+    if (!isValidUrl(url)) {
+      return NextResponse.json({ error: 'Invalid or unsafe URL provided' }, { status: 400 });
+    }
+
     let markdown = '';
     let title = '';
-    let toc: { id: string, text: string, level: number }[] = [];
+    const toc: { id: string, text: string, level: number }[] = [];
     const domain = new URL(url).hostname;
 
     // Special handling for GitHub
@@ -41,6 +96,9 @@ export async function POST(req: Request) {
       }
 
       if (rawUrl) {
+        if (!isValidUrl(rawUrl)) {
+          return NextResponse.json({ error: 'Invalid or unsafe URL provided for GitHub fetch' }, { status: 400 });
+        }
         const apiResponse = await fetch(rawUrl);
         if (apiResponse.ok) {
           markdown = await apiResponse.text();
@@ -112,11 +170,11 @@ export async function POST(req: Request) {
             }
         });
       }
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
       console.error('Database Error:', dbError);
       return NextResponse.json({ 
         error: 'Database error. Did you run prisma db push?',
-        details: dbError.message 
+        details: dbError instanceof Error ? dbError.message : String(dbError)
       }, { status: 500 });
     }
 
@@ -128,11 +186,11 @@ export async function POST(req: Request) {
         toc
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('General Parsing Error:', error);
     return NextResponse.json({ 
       error: 'Failed to process URL',
-      details: error.message 
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }
