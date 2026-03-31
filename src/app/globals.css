@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-inter: var(--font-inter);
+  --font-spaceGrotesk: var(--font-space-grotesk);
+  --font-manrope: var(--font-manrope);
+}
+
+@layer base {
+  :root {
+    --background: #faf8ff;
+    --on-background: #060e20;
+    --surface: #faf8ff;
+    --on-surface: #060e20;
+    --surface-container-low: #f3f0fb;
+    --surface-container: #edeaf6;
+    --surface-container-high: #e7e4f1;
+    --surface-container-highest: #e1deec;
+    --surface-container-lowest: #ffffff;
+    --primary: #3bbffa;
+    --primary-dim: #05a9e3;
+    --on-primary: #ffffff;
+    --primary-container: #22b1ec;
+    --on-primary-container: #002b3d;
+    --secondary: #69f6b8;
+    --secondary-dim: #58e7ab;
+    --on-secondary: #005a3c;
+    --secondary-container: #006c49;
+    --on-secondary-container: #e1ffec;
+    --error: #d7383b;
+    --on-error: #ffffff;
+    --error-container: #ff716c;
+    --on-error-container: #490006;
+    --outline: #40485d;
+    --outline-variant: #a3aac4;
+    --surface-variant: #192540;
+    --on-surface-variant: #dee5ff;
+  }
+
+  .dark {
+    --background: #060e20;
+    --on-background: #dee5ff;
+    --surface: #060e20;
+    --on-surface: #dee5ff;
+    --surface-container-low: #091328;
+    --surface-container: #0f1930;
+    --surface-container-high: #141f38;
+    --surface-container-highest: #192540;
+    --surface-container-lowest: #000000;
+    --primary: #3bbffa;
+    --primary-dim: #05a9e3;
+    --on-primary: #00374d;
+    --primary-container: #22b1ec;
+    --on-primary-container: #002b3d;
+    --secondary: #69f6b8;
+    --secondary-dim: #58e7ab;
+    --on-secondary: #005a3c;
+    --secondary-container: #006c49;
+    --on-secondary-container: #e1ffec;
+    --error: #ff716c;
+    --on-error: #490006;
+    --error-container: #9f0519;
+    --on-error-container: #ffa8a3;
+    --outline: #6d758c;
+    --outline-variant: #40485d;
+    --surface-variant: #192540;
+    --on-surface-variant: #a3aac4;
+  }
+}
+
+body {
+  font-family: var(--font-manrope), sans-serif;
+  background-color: var(--background);
+  color: var(--on-background);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+code {
+  font-family: var(--font-inter), monospace;
+}
