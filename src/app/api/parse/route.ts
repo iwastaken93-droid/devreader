@@ -84,10 +84,10 @@ export async function POST(req: Request) {
       // Generate TOC for any markdown we got
       if (markdown && toc.length === 0) {
         // Simple regex-based TOC for raw markdown
-        const headingMatches = markdown.matchAll(/^#{1,3}\s+(.+)$/gm);
+        const headingMatches = markdown.matchAll(/^(#{1,3})\s+(.+)$/gm);
         for (const match of headingMatches) {
-          const text = match[1].trim();
-          const level = match[0].trim().split(' ')[0].length;
+          const text = match[2].trim();
+          const level = match[1].length;
           const id = text.toLowerCase().replace(/[^\w]+/g, '-');
           toc.push({ id, text, level });
         }
