@@ -44,6 +44,7 @@ model User {
   sessions      Session[]
   articles      Article[]
   snippets      Snippet[]
+  collections   Collection[]
 }
 
 model VerificationToken {
@@ -54,30 +55,48 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Article {
+model Collection {
   id          String    @id @default(cuid())
-  url         String    @unique
-  title       String
-  content     String    @db.Text
-  domain      String?
-  saved       Boolean   @default(false)
+  name        String
+  description String?
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articles    Article[]
+  snippets    Snippet[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  snippets    Snippet[]
+
+  @@unique([userId, name])
+}
+
+model Article {
+  id           String      @id @default(cuid())
+  url          String      @unique
+  title        String
+  content      String      @db.Text
+  domain       String?
+  saved        Boolean     @default(false)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  snippets     Snippet[]
 }
 
 model Snippet {
-  id          String    @id @default(cuid())
-  code        String    @db.Text
-  language    String?
-  tags        String?
-  sourceUrl   String?
-  articleId   String?
-  userId      String
-  article     Article?  @relation(fields: [articleId], references: [id], onDelete: SetNull)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String      @id @default(cuid())
+  code         String      @db.Text
+  language     String?
+  tags         String?
+  sourceUrl    String?
+  articleId    String?
+  userId       String
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  article      Article?    @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }

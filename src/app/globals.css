@@ -79,6 +79,49 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-space-grotesk), sans-serif;
 }
 
-code {
-  font-family: var(--font-inter), monospace;
+/* Shiki Syntax Highlighting Custom Styles */
+.shiki-container pre {
+  padding: 1.5rem !important;
+  margin: 0 !important;
+  background-color: var(--surface-container-lowest) !important;
+  border: 1px solid rgba(var(--outline-variant), 0.1);
+  border-radius: 0.75rem;
+  overflow-x: auto;
 }
+
+.shiki-container code {
+  font-family: var(--font-inter), monospace !important;
+  line-height: 1.6 !important;
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-container-highest);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline-variant);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fade-in for markdown images */
+.prose img {
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  margin: 2rem auto;
+}
+

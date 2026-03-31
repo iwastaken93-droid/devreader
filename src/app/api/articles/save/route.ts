@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, saved } = await req.json();
+    const { id, saved, collectionId } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: 'Article ID is required' }, { status: 400 });
@@ -21,7 +21,8 @@ export async function POST(req: Request) {
         userId: user.id 
       },
       data: {
-        saved: saved
+        saved: saved,
+        ...(collectionId !== undefined ? { collectionId: collectionId || null } : {})
       }
     });
 

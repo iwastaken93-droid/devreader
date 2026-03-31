@@ -11,6 +11,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
+    const collectionId = searchParams.get('collectionId');
 
     let whereClause: any = { userId: user.id };
 
@@ -18,11 +19,18 @@ export async function GET(req: Request) {
       whereClause.code = { contains: search, mode: 'insensitive' };
     }
 
+    if (collectionId && collectionId !== 'all') {
+      whereClause.collectionId = collectionId;
+    }
+
     const snippets = await prisma.snippet.findMany({
       where: whereClause,
       include: {
         article: {
           select: { title: true }
+        },
+        collection: {
+          select: { name: true }
         }
       },
       orderBy: { createdAt: 'desc' }

@@ -11,15 +11,22 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
+    const collectionId = searchParams.get('collectionId');
 
     const articles = await prisma.article.findMany({
       where: {
         userId: user.id,
         saved: true,
+        ...(collectionId && collectionId !== 'all' ? { collectionId } : {}),
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
           { content: { contains: search, mode: 'insensitive' } },
         ]
+      },
+      include: {
+        collection: {
+          select: { name: true }
+        }
       },
       orderBy: {
         updatedAt: 'desc'

@@ -62,6 +62,25 @@ export async function POST(req: Request) {
       });
       
       markdown = turndownService.turndown(article.content || "");
+
+      // Generate TOC
+      const toc: { id: string, text: string, level: number }[] = [];
+      const headings = document.querySelectorAll('h1, h2, h3');
+      headings.forEach((heading: any, index: number) => {
+        const text = heading.textContent?.trim() || '';
+        const id = text.toLowerCase().replace(/[^\w]+/g, '-') + '-' + index;
+        heading.setAttribute('id', id);
+        toc.push({
+          id,
+          text,
+          level: parseInt(heading.tagName[1])
+        });
+      });
+      
+      // Update markdown if we modified the document (to include IDs)
+      if (toc.length > 0) {
+        markdown = turndownService.turndown(document.body.innerHTML);
+      }
     }
 
     // Check if article already exists for user
@@ -94,7 +113,8 @@ export async function POST(req: Request) {
         article: savedArticle,
         markdown,
         title,
-        saved: savedArticle.saved
+        saved: savedArticle.saved,
+        toc
     });
 
   } catch (error: any) {

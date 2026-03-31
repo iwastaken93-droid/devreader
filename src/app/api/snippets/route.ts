@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { code, language, sourceUrl, articleId } = await req.json();
+    const { code, language, sourceUrl, articleId, collectionId } = await req.json();
 
     if (!code) {
       return NextResponse.json({ error: 'Code snippet is required' }, { status: 400 });
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
         language,
         sourceUrl,
         articleId,
+        collectionId: collectionId || null,
         userId: user.id,
       }
     });
