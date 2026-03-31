@@ -52,41 +52,45 @@ export async function POST(req: Request) {
     // Default processing for general articles
     if (!markdown) {
       const response = await fetch(url);
-      const html = await response.text();
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('text/plain') || contentType.includes('text/markdown')) {
+        markdown = await response.text();
+        title = url.split('/').pop() || 'Raw Content';
+      } else {
+        const html = await response.text();
+        const { document } = parseHTML(html);
+        const reader = new Readability(document);
+        const article = reader.parse();
 
-      const { document } = parseHTML(html);
-      const reader = new Readability(document);
-      const article = reader.parse();
-
-      if (!article) {
-        return NextResponse.json({ error: 'Failed to parse article' }, { status: 500 });
+        if (!article) {
+          // If readability fails, fallback to raw text if it looks like markdown
+          if (html.includes('#') || html.includes('```')) {
+            markdown = html;
+            title = 'Parsed Content';
+          } else {
+            return NextResponse.json({ error: 'Failed to parse article' }, { status: 500 });
+          }
+        } else {
+          title = article.title || "";
+          const turndownService = new TurndownService({
+            headingStyle: 'atx',
+            codeBlockStyle: 'fenced'
+          });
+          markdown = turndownService.turndown(article.content || "");
+        }
       }
 
-      title = article.title || "";
-      
-      const turndownService = new TurndownService({
-        headingStyle: 'atx',
-        codeBlockStyle: 'fenced'
-      });
-      
-      markdown = turndownService.turndown(article.content || "");
-
-      // Generate TOC
-      const headings = document.querySelectorAll('h1, h2, h3');
-      headings.forEach((heading: any, index: number) => {
-        const text = heading.textContent?.trim() || '';
-        const id = text.toLowerCase().replace(/[^\w]+/g, '-') + '-' + index;
-        heading.setAttribute('id', id);
-        toc.push({
-          id,
-          text,
-          level: parseInt(heading.tagName[1])
-        });
-      });
-      
-      // Update markdown if we modified the document (to include IDs)
-      if (toc.length > 0) {
-        markdown = turndownService.turndown(document.body.innerHTML);
+      // Generate TOC for any markdown we got
+      if (markdown && toc.length === 0) {
+        // Simple regex-based TOC for raw markdown
+        const headingMatches = markdown.matchAll(/^#{1,3}\s+(.+)$/gm);
+        for (const match of headingMatches) {
+          const text = match[1].trim();
+          const level = match[0].trim().split(' ')[0].length;
+          const id = text.toLowerCase().replace(/[^\w]+/g, '-');
+          toc.push({ id, text, level });
+        }
       }
     }
 
