@@ -22,8 +22,9 @@ export default function Navbar() {
 
           <div className="flex items-center space-x-4">
             <button
+              aria-label="Toggle theme"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-full hover:bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] transition-colors"
+              className="p-2 rounded-full hover:bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             >
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
@@ -45,8 +46,9 @@ export default function Navbar() {
                     />
                   )}
                   <button
+                    aria-label="Sign Out"
                     onClick={() => signOut()}
-                    className="p-2 text-[var(--on-surface-variant)] hover:text-[var(--error)] transition-colors"
+                    className="p-2 text-[var(--on-surface-variant)] hover:text-[var(--error)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error)] rounded-full"
                     title="Sign Out"
                   >
                     <LogOut className="h-5 w-5" />
