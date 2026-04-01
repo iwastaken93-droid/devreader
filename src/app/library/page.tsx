@@ -1,16 +1,91 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Filter, Code2, Clock, Trash2, Copy, ExternalLink, Loader2, BookOpen, Folder } from "lucide-react"
+import { Search, Filter, Code2, Clock, Trash2, Copy, ExternalLink, BookOpen, Folder } from "lucide-react"
 import CodeBlock from "@/components/code-block"
+
+interface Collection {
+  id: string;
+  name: string;
+}
+
+interface Article {
+  id: string;
+  title: string;
+  content: string;
+  domain: string | null;
+  url: string;
+  updatedAt: string;
+  collection: Collection | null;
+}
+
+interface Snippet {
+  id: string;
+  code: string;
+  language: string | null;
+  sourceUrl: string | null;
+  createdAt: string;
+  article: { title: string } | null;
+  collection: Collection | null;
+}
+
+function SkeletonSnippetCard() {
+  return (
+    <div className="bg-[var(--surface-container)] rounded-2xl overflow-hidden shadow-lg border border-[var(--surface-container-high)] flex flex-col animate-pulse">
+      <div className="p-4 border-b border-[var(--surface-container-high)] flex justify-between items-center bg-[var(--surface-container-low)]">
+        <div className="flex items-center space-x-2">
+          <div className="w-12 h-5 bg-[var(--surface-variant)] rounded-full"></div>
+          <div className="w-32 h-4 bg-[var(--surface-container-highest)] rounded-md"></div>
+        </div>
+        <div className="flex space-x-1">
+          <div className="w-6 h-6 bg-[var(--surface-container-highest)] rounded-md"></div>
+          <div className="w-6 h-6 bg-[var(--surface-container-highest)] rounded-md"></div>
+        </div>
+      </div>
+      <div className="p-4 bg-[var(--surface-container-lowest)] flex-1 min-h-[120px]">
+        <div className="w-3/4 h-4 bg-[var(--surface-container-highest)] rounded-md mb-2"></div>
+        <div className="w-1/2 h-4 bg-[var(--surface-container-highest)] rounded-md mb-2"></div>
+        <div className="w-5/6 h-4 bg-[var(--surface-container-highest)] rounded-md"></div>
+      </div>
+      <div className="p-3 bg-[var(--surface-container-low)] border-t border-[var(--surface-container-high)] flex justify-between items-center">
+        <div className="w-20 h-3 bg-[var(--surface-container-highest)] rounded-md"></div>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonArticleCard() {
+  return (
+    <div className="bg-[var(--surface-container)] rounded-2xl overflow-hidden shadow-lg border border-[var(--surface-container-high)] flex flex-col animate-pulse min-h-[200px]">
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex flex-col gap-2">
+            <div className="w-16 h-5 bg-[var(--surface-container-high)] rounded-md"></div>
+            <div className="w-20 h-3 bg-[var(--surface-container-highest)] rounded-md"></div>
+          </div>
+          <div className="w-6 h-6 bg-[var(--surface-container-highest)] rounded-md"></div>
+        </div>
+        <div className="w-full h-6 bg-[var(--surface-container-highest)] rounded-md mb-3"></div>
+        <div className="w-3/4 h-6 bg-[var(--surface-container-highest)] rounded-md mb-4"></div>
+        <div className="w-full h-4 bg-[var(--surface-container-highest)] rounded-md mb-2"></div>
+        <div className="w-full h-4 bg-[var(--surface-container-highest)] rounded-md mb-2"></div>
+        <div className="w-5/6 h-4 bg-[var(--surface-container-highest)] rounded-md mb-4"></div>
+        <div className="mt-auto flex items-center justify-between pt-4 border-t border-[var(--surface-container-high)]">
+          <div className="w-20 h-3 bg-[var(--surface-container-highest)] rounded-md"></div>
+          <div className="w-12 h-3 bg-[var(--surface-container-highest)] rounded-md"></div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Library() {
   const { data: session } = useSession()
-  const [snippets, setSnippets] = useState<any[]>([])
-  const [articles, setArticles] = useState<any[]>([])
-  const [collections, setCollections] = useState<any[]>([])
+  const [snippets, setSnippets] = useState<Snippet[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
+  const [collections, setCollections] = useState<Collection[]>([])
   const [activeTab, setActiveTab] = useState<'snippets' | 'articles'>('snippets')
   const [selectedCollection, setSelectedCollection] = useState<string>("all")
   const [loading, setLoading] = useState(true)
@@ -21,16 +96,6 @@ export default function Library() {
       fetchCollections()
     }
   }, [session])
-
-  useEffect(() => {
-    if (session) {
-      if (activeTab === 'snippets') {
-        fetchSnippets()
-      } else {
-        fetchArticles()
-      }
-    }
-  }, [session, search, activeTab, selectedCollection])
 
   const fetchCollections = async () => {
     try {
@@ -44,7 +109,7 @@ export default function Library() {
     }
   }
 
-  const fetchSnippets = async () => {
+  const fetchSnippets = useCallback(async () => {
     setLoading(true)
     try {
       let url = `/api/snippets/list?search=${encodeURIComponent(search)}`
@@ -59,9 +124,9 @@ export default function Library() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [search, selectedCollection])
 
-  const fetchArticles = async () => {
+  const fetchArticles = useCallback(async () => {
     setLoading(true)
     try {
       let url = `/api/articles/list?search=${encodeURIComponent(search)}`
@@ -76,30 +141,54 @@ export default function Library() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [search, selectedCollection])
+
+  useEffect(() => {
+    if (session) {
+      if (activeTab === 'snippets') {
+        fetchSnippets()
+      } else {
+        fetchArticles()
+      }
+    }
+  }, [session, search, activeTab, selectedCollection, fetchSnippets, fetchArticles])
 
   const deleteSnippet = async (id: string) => {
+    // Optimistic UI update: use functional state update to prevent race conditions
+    setSnippets(prev => prev.filter(s => s.id !== id))
+
     try {
       const res = await fetch(`/api/snippets/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSnippets(snippets.filter(s => s.id !== id))
+      if (!res.ok) {
+        // Revert on failure by fetching latest
+        fetchSnippets()
+        console.error("Failed to delete snippet on server")
       }
     } catch (error) {
+      // Revert on failure by fetching latest
+      fetchSnippets()
       console.error("Failed to delete snippet", error)
     }
   }
 
   const deleteArticle = async (id: string) => {
+    // Optimistic UI update: use functional state update to prevent race conditions
+    setArticles(prev => prev.filter(a => a.id !== id))
+
     try {
       const res = await fetch("/api/articles/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, saved: false }),
       })
-      if (res.ok) {
-        setArticles(articles.filter(a => a.id !== id))
+      if (!res.ok) {
+        // Revert on failure by fetching latest
+        fetchArticles()
+        console.error("Failed to delete article on server")
       }
     } catch (error) {
+      // Revert on failure by fetching latest
+      fetchArticles()
       console.error("Failed to delete article", error)
     }
   }
@@ -178,8 +267,11 @@ export default function Library() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+        <div className={activeTab === 'snippets' ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+          {activeTab === 'snippets'
+            ? Array.from({ length: 4 }).map((_, i) => <SkeletonSnippetCard key={i} />)
+            : Array.from({ length: 6 }).map((_, i) => <SkeletonArticleCard key={i} />)
+          }
         </div>
       ) : (
         <AnimatePresence mode="wait">
