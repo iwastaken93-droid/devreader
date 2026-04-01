@@ -1,0 +1,3 @@
+## 2024-03-23 - Prisma findMany Payload Limitations
+**Learning:** In Next.js/Prisma apps, fetching large strings (like `content`) and truncating them on the server side before sending to the client doesn't actually solve the primary performance bottleneck (database I/O and server memory allocation). Moreover, Prisma's `select` does not natively support SQL `SUBSTRING` functions, meaning you must fetch the entire column data if you need any part of it in a standard Prisma query, or you must rely on Raw SQL.
+**Action:** Always address database query performance at the SQL/Index level rather than relying on in-memory JS manipulations for data reduction.
