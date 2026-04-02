@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, Filter, Code2, Clock, Trash2, Copy, ExternalLink, BookOpen, Folder, Check } from "lucide-react"
 import CodeBlock from "@/components/code-block"
+import { useRouter } from "next/navigation"
 
 interface Collection {
   id: string;
@@ -82,6 +83,7 @@ function SkeletonArticleCard() {
 }
 
 export default function Library() {
+  const router = useRouter()
   const { data: session } = useSession()
   const [snippets, setSnippets] = useState<Snippet[]>([])
   const [articles, setArticles] = useState<Article[]>([])
@@ -289,10 +291,38 @@ export default function Library() {
               className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
               {snippets.length === 0 ? (
-                <div className="col-span-full text-center py-20">
-                  <Code2 className="h-16 w-16 mx-auto text-[var(--surface-container-highest)] mb-4" />
-                  <h3 className="text-xl font-spaceGrotesk text-[var(--on-surface)] mb-2">No snippets found</h3>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="col-span-full flex flex-col items-center justify-center py-20 px-4 bg-[var(--surface-container-low)] rounded-2xl border border-dashed border-[var(--surface-container-high)]"
+                >
+                  <div className="bg-[var(--surface-container-highest)] p-4 rounded-full mb-6">
+                    <Code2 className="h-10 w-10 text-[var(--outline-variant)]" />
+                  </div>
+                  <h3 className="text-2xl font-spaceGrotesk font-bold text-[var(--on-surface)] mb-2">
+                    {search || selectedCollection !== 'all' ? "No matching snippets found" : "Your snippets library is empty"}
+                  </h3>
+                  <p className="text-[var(--on-surface-variant)] font-manrope text-center max-w-md mb-8">
+                    {search || selectedCollection !== 'all'
+                      ? "Try adjusting your search terms or clearing your filters to find what you're looking for."
+                      : "Start saving reusable code blocks from articles to build your personal knowledge base."}
+                  </p>
+                  {search || selectedCollection !== 'all' ? (
+                    <button
+                      onClick={() => { setSearch(""); setSelectedCollection("all"); }}
+                      className="px-6 py-2.5 bg-[var(--surface-container-highest)] hover:bg-[var(--surface-container-highest)]/80 text-[var(--on-surface)] rounded-xl font-medium transition-all"
+                    >
+                      Clear Filters
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/')}
+                      className="px-6 py-2.5 bg-[var(--primary)] hover:opacity-90 text-[var(--on-primary)] rounded-xl font-medium transition-all"
+                    >
+                      Discover Articles
+                    </button>
+                  )}
+                </motion.div>
               ) : (
                 snippets.map((snippet, idx) => (
                   <motion.div
@@ -353,10 +383,38 @@ export default function Library() {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
               {articles.length === 0 ? (
-                <div className="col-span-full text-center py-20">
-                  <BookOpen className="h-16 w-16 mx-auto text-[var(--surface-container-highest)] mb-4" />
-                  <h3 className="text-xl font-spaceGrotesk text-[var(--on-surface)] mb-2">No articles found</h3>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="col-span-full flex flex-col items-center justify-center py-20 px-4 bg-[var(--surface-container-low)] rounded-2xl border border-dashed border-[var(--surface-container-high)]"
+                >
+                  <div className="bg-[var(--surface-container-highest)] p-4 rounded-full mb-6">
+                    <BookOpen className="h-10 w-10 text-[var(--outline-variant)]" />
+                  </div>
+                  <h3 className="text-2xl font-spaceGrotesk font-bold text-[var(--on-surface)] mb-2">
+                    {search || selectedCollection !== 'all' ? "No matching articles found" : "Your article library is empty"}
+                  </h3>
+                  <p className="text-[var(--on-surface-variant)] font-manrope text-center max-w-md mb-8">
+                    {search || selectedCollection !== 'all'
+                      ? "Try adjusting your search terms or clearing your filters to find what you're looking for."
+                      : "Save technical documentation, GitHub READMEs, or blog posts to read them later distraction-free."}
+                  </p>
+                  {search || selectedCollection !== 'all' ? (
+                    <button
+                      onClick={() => { setSearch(""); setSelectedCollection("all"); }}
+                      className="px-6 py-2.5 bg-[var(--surface-container-highest)] hover:bg-[var(--surface-container-highest)]/80 text-[var(--on-surface)] rounded-xl font-medium transition-all"
+                    >
+                      Clear Filters
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/')}
+                      className="px-6 py-2.5 bg-[var(--primary)] hover:opacity-90 text-[var(--on-primary)] rounded-xl font-medium transition-all"
+                    >
+                      Discover Articles
+                    </button>
+                  )}
+                </motion.div>
               ) : (
                 articles.map((article, idx) => (
                   <motion.div

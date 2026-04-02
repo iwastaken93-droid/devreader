@@ -301,7 +301,31 @@ export default function Home() {
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Fetch"}
           </button>
         </form>
-        {error && <p className="text-[var(--error)] text-sm mt-2">{error}</p>}
+
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="mt-4 bg-[var(--error)]/10 border border-[var(--error)]/20 rounded-lg p-3 flex items-center justify-between text-[var(--error)] overflow-hidden"
+            >
+              <div className="flex items-center gap-2">
+                <div className="bg-[var(--error)]/20 p-1.5 rounded-full">
+                  <CloseIcon className="h-3 w-3" />
+                </div>
+                <p className="text-sm font-medium font-inter">{error}</p>
+              </div>
+              <button
+                onClick={() => setError("")}
+                className="p-1 hover:bg-[var(--error)]/20 rounded-md transition-colors"
+                aria-label="Dismiss error"
+              >
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Article Content Wrapper */}
