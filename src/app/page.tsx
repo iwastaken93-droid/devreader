@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion"
-import { LinkIcon, Loader2, Save, FileText, Menu, ChevronRight, Sparkles, BrainCircuit, X as CloseIcon, FolderPlus, Folder } from "lucide-react"
+import { LinkIcon, Loader2, Save, FileText, Menu, Sparkles, BrainCircuit, X as CloseIcon, FolderPlus, AlertCircle, RefreshCw, Check } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import CodeBlock from "@/components/code-block"
 
@@ -14,7 +14,6 @@ export default function Home() {
   const [error, setError] = useState("")
   const [article, setArticle] = useState<any>(null)
   const [isArticleSaved, setIsArticleSaved] = useState(false)
-  const [savingArticle, setSavingArticle] = useState(false)
   
   // AI State
   const [summary, setSummary] = useState<string | null>(null)
@@ -40,6 +39,7 @@ export default function Home() {
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 })
   const [showPopover, setShowPopover] = useState(false)
   const [savingSnippet, setSavingSnippet] = useState(false)
+  const [snippetSavedState, setSnippetSavedState] = useState(false)
   const articleRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -141,7 +141,11 @@ export default function Home() {
         }),
       });
       if (res.ok) {
-        setShowPopover(false);
+        setSnippetSavedState(true);
+        setTimeout(() => {
+          setShowPopover(false);
+          setSnippetSavedState(false);
+        }, 1500);
       }
     } catch (err) {
       console.error("Failed to save snippet", err);
@@ -192,26 +196,39 @@ export default function Home() {
     }
   };
 
+  /**
+   * Optimistic UI Update: We instantly update the `isArticleSaved` state to provide
+   * immediate feedback without a loading spinner. If the server request fails,
+   * we catch the error and revert the state back to its original value.
+   */
   const toggleSaveArticle = async () => {
     if (!article?.article?.id) return;
-    setSavingArticle(true);
+
+    // Save previous state to revert if needed
+    const previousState = isArticleSaved;
+
+    // Instantly update the UI state
+    setIsArticleSaved(!previousState);
+
     try {
       const res = await fetch("/api/articles/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: article.article.id,
-          saved: !isArticleSaved,
+          saved: !previousState,
           collectionId: selectedCollection || null
         }),
       });
-      if (res.ok) {
-        setIsArticleSaved(!isArticleSaved);
+      if (!res.ok) {
+        // Revert on failure
+        setIsArticleSaved(previousState);
+        console.error("Failed to toggle save article on server");
       }
     } catch (err) {
+      // Revert on failure
+      setIsArticleSaved(previousState);
       console.error("Failed to toggle save article", err);
-    } finally {
-      setSavingArticle(false);
     }
   };
 
@@ -301,7 +318,31 @@ export default function Home() {
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Fetch"}
           </button>
         </form>
-        {error && <p className="text-[var(--error)] text-sm mt-2">{error}</p>}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="mt-6 flex flex-col items-center justify-center p-4 bg-[var(--error)]/10 border border-[var(--error)]/20 rounded-xl"
+            >
+              <div className="flex items-center gap-2 text-[var(--error)] mb-3">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-inter font-medium">{error}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setError("");
+                  setUrl("");
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-container-high)] hover:bg-[var(--surface-container-highest)] text-[var(--on-surface)] rounded-md transition-colors text-sm font-medium font-inter"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Try Another URL
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Article Content Wrapper */}
@@ -361,24 +402,22 @@ export default function Home() {
                           {summarizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                           {summary ? "Summary Generated" : "AI Summarize"}
                         </button>
-                        <button 
+                        <motion.button
                           onClick={toggleSaveArticle}
-                          disabled={savingArticle}
+                          whileTap={{ scale: 0.95 }}
                           className={`text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
                             isArticleSaved 
                             ? 'bg-[var(--primary)] text-[var(--on-primary)]' 
                             : 'bg-[var(--surface-container-high)] text-[var(--on-surface)] hover:bg-[var(--surface-container-highest)]'
                           }`}
                         >
-                          {savingArticle ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : isArticleSaved ? (
+                          {isArticleSaved ? (
                             <FileText className="h-3 w-3" />
                           ) : (
                             <Save className="h-3 w-3" />
                           )}
                           {isArticleSaved ? "Saved" : "Save to Library"}
-                        </button>
+                        </motion.button>
 
                         <div className="flex items-center gap-1">
                           <select
@@ -501,11 +540,23 @@ export default function Home() {
           >
             <button
               onClick={saveSnippet}
-              disabled={savingSnippet}
-              className="flex items-center space-x-2 px-4 py-2 bg-[var(--surface-bright)] hover:bg-[var(--surface-container-highest)] text-[var(--on-surface)] rounded-sm shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-[var(--outline-variant)] border-opacity-20 transition-all group"
+              disabled={savingSnippet || snippetSavedState}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-sm shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-[var(--outline-variant)] border-opacity-20 transition-all group ${
+                snippetSavedState
+                ? 'bg-green-500/20 text-green-500 border-green-500/50'
+                : 'bg-[var(--surface-bright)] hover:bg-[var(--surface-container-highest)] text-[var(--on-surface)]'
+              }`}
             >
-              {savingSnippet ? <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" /> : <Save className="h-4 w-4 text-[var(--primary)] group-hover:scale-110 transition-transform" />}
-              <span className="font-inter text-sm font-medium">Save</span>
+              {savingSnippet ? (
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
+              ) : snippetSavedState ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Save className="h-4 w-4 text-[var(--primary)] group-hover:scale-110 transition-transform" />
+              )}
+              <span className="font-inter text-sm font-medium">
+                {snippetSavedState ? 'Saved!' : 'Save'}
+              </span>
             </button>
 
             <button
