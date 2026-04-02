@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Filter, Code2, Clock, Trash2, Copy, ExternalLink, BookOpen, Folder } from "lucide-react"
+import { Search, Filter, Code2, Clock, Trash2, Copy, ExternalLink, BookOpen, Folder, Check } from "lucide-react"
 import CodeBlock from "@/components/code-block"
 
 interface Collection {
@@ -90,6 +90,7 @@ export default function Library() {
   const [selectedCollection, setSelectedCollection] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (session) {
@@ -193,8 +194,10 @@ export default function Library() {
     }
   }
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (id: string, text: string) => {
     navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
   if (!session) {
@@ -219,6 +222,7 @@ export default function Library() {
           </div>
           <input
             type="text"
+            aria-label="Search library"
             placeholder={activeTab === 'snippets' ? "Search in code..." : "Search in articles..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -252,8 +256,9 @@ export default function Library() {
         </div>
 
         <div className="flex items-center gap-2 text-sm text-[var(--on-surface-variant)] font-inter">
-          <Filter className="h-4 w-4" />
+          <Filter className="h-4 w-4" aria-hidden="true" />
           <select
+            aria-label="Filter by collection"
             value={selectedCollection}
             onChange={(e) => setSelectedCollection(e.target.value)}
             className="bg-[var(--surface-container-low)] border-none outline-none py-1.5 px-3 rounded-lg focus:ring-1 focus:ring-[var(--primary)]"
@@ -307,15 +312,15 @@ export default function Library() {
                         </span>
                       </div>
                       <div className="flex space-x-1 text-[var(--outline-variant)]">
-                        <button onClick={() => copyToClipboard(snippet.code)} className="p-1.5 hover:bg-[var(--surface-container-highest)] hover:text-[var(--primary)] rounded-md transition-colors" title="Copy">
-                          <Copy className="h-4 w-4" />
+                        <button aria-label={copiedId === snippet.id ? "Copied" : "Copy code"} onClick={() => copyToClipboard(snippet.id, snippet.code)} className="p-1.5 hover:bg-[var(--surface-container-highest)] hover:text-[var(--primary)] rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:outline-none" title="Copy">
+                          {copiedId === snippet.id ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                         </button>
                         {snippet.sourceUrl && (
-                          <a href={snippet.sourceUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-[var(--surface-container-highest)] hover:text-[var(--primary)] rounded-md transition-colors" title="Go to source">
+                          <a aria-label="Open source" href={snippet.sourceUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-[var(--surface-container-highest)] hover:text-[var(--primary)] rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:outline-none" title="Go to source">
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         )}
-                        <button onClick={() => deleteSnippet(snippet.id)} className="p-1.5 hover:bg-[var(--surface-container-highest)] hover:text-[var(--error)] rounded-md transition-colors" title="Delete">
+                        <button aria-label="Delete snippet" onClick={() => deleteSnippet(snippet.id)} className="p-1.5 hover:bg-[var(--surface-container-highest)] hover:text-[var(--error)] rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-[var(--error)] focus-visible:outline-none" title="Delete">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -375,8 +380,9 @@ export default function Library() {
                           )}
                         </div>
                         <button 
+                          aria-label="Delete article"
                           onClick={() => deleteArticle(article.id)}
-                          className="p-1.5 text-[var(--outline-variant)] hover:text-[var(--error)] hover:bg-[var(--surface-container-highest)] rounded-md transition-all"
+                          className="p-1.5 text-[var(--outline-variant)] hover:text-[var(--error)] hover:bg-[var(--surface-container-highest)] rounded-md transition-all focus-visible:ring-2 focus-visible:ring-[var(--error)] focus-visible:outline-none"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
