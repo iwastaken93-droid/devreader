@@ -9,6 +9,15 @@ interface CodeBlockProps {
   theme?: string
 }
 
+function escapeHtml(unsafe: string) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export default function CodeBlock({ code, language = 'javascript', theme = 'github-dark' }: CodeBlockProps) {
   const [html, setHtml] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -26,10 +35,10 @@ export default function CodeBlock({ code, language = 'javascript', theme = 'gith
         if (data.html) {
           setHtml(data.html)
         } else {
-          setHtml(`<pre><code>${code}</code></pre>`)
+          setHtml(`<pre><code>${escapeHtml(code)}</code></pre>`)
         }
-      } catch (e) {
-        setHtml(`<pre><code>${code}</code></pre>`)
+      } catch (_e) {
+        setHtml(`<pre><code>${escapeHtml(code)}</code></pre>`)
       } finally {
         setLoading(false)
       }
