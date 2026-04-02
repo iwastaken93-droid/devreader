@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion"
-import { LinkIcon, Loader2, Save, FileText, Menu, ChevronRight, Sparkles, BrainCircuit, X as CloseIcon, FolderPlus, Folder } from "lucide-react"
+import { LinkIcon, Loader2, Save, FileText, Menu, Sparkles, BrainCircuit, X as CloseIcon, FolderPlus, AlertCircle, CheckCircle2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import CodeBlock from "@/components/code-block"
 
@@ -12,9 +12,9 @@ export default function Home() {
   const [url, setUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
   const [article, setArticle] = useState<any>(null)
   const [isArticleSaved, setIsArticleSaved] = useState(false)
-  const [savingArticle, setSavingArticle] = useState(false)
   
   // AI State
   const [summary, setSummary] = useState<string | null>(null)
@@ -125,6 +125,11 @@ export default function Home() {
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, [article]);
 
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
   const saveSnippet = async () => {
     if (!selection || !article) return;
     setSavingSnippet(true);
@@ -142,9 +147,13 @@ export default function Home() {
       });
       if (res.ok) {
         setShowPopover(false);
+        showToast("Snippet saved to library")
+      } else {
+        throw new Error("Failed to save snippet")
       }
     } catch (err) {
       console.error("Failed to save snippet", err);
+      showToast("Failed to save snippet", "error")
     } finally {
       setSavingSnippet(false);
       window.getSelection()?.removeAllRanges();
@@ -194,24 +203,29 @@ export default function Home() {
 
   const toggleSaveArticle = async () => {
     if (!article?.article?.id) return;
-    setSavingArticle(true);
+    // Optimistic UI update
+    const previousState = isArticleSaved;
+    setIsArticleSaved(!previousState);
+
     try {
       const res = await fetch("/api/articles/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: article.article.id,
-          saved: !isArticleSaved,
+          saved: !previousState,
           collectionId: selectedCollection || null
         }),
       });
-      if (res.ok) {
-        setIsArticleSaved(!isArticleSaved);
+      if (!res.ok) {
+        throw new Error("Failed to toggle save article");
       }
+      showToast(!previousState ? "Article saved to library" : "Article removed from library");
     } catch (err) {
       console.error("Failed to toggle save article", err);
-    } finally {
-      setSavingArticle(false);
+      // Revert optimistic update
+      setIsArticleSaved(previousState);
+      showToast("Failed to save article", "error");
     }
   };
 
@@ -243,9 +257,15 @@ export default function Home() {
 
   const handleSetCollection = async (collectionId: string) => {
     if (!article?.article?.id) return;
+
+    // Optimistic UI Update
+    const previousCollection = selectedCollection;
+    const previousSavedState = isArticleSaved;
     setSelectedCollection(collectionId);
+    setIsArticleSaved(true);
+
     try {
-      await fetch("/api/articles/save", {
+      const res = await fetch("/api/articles/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -254,9 +274,14 @@ export default function Home() {
           saved: true 
         }),
       });
-      setIsArticleSaved(true);
+      if (!res.ok) throw new Error("Failed to set collection");
+      showToast("Collection updated");
     } catch (e) {
       console.error("Failed to set collection", e)
+      // Revert on failure
+      setSelectedCollection(previousCollection);
+      setIsArticleSaved(previousSavedState);
+      showToast("Failed to update collection", "error");
     }
   };
 
@@ -301,7 +326,38 @@ export default function Home() {
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Fetch"}
           </button>
         </form>
-        {error && <p className="text-[var(--error)] text-sm mt-2">{error}</p>}
+
+        {/* Modern Error State (Recovery Path) */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="mt-4 overflow-hidden"
+            >
+              <div className="bg-[var(--error-container)] border border-[var(--error)]/20 p-4 rounded-xl flex items-start gap-3 text-left">
+                <AlertCircle className="h-5 w-5 text-[var(--on-error-container)] shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-spaceGrotesk font-bold text-[var(--on-error-container)] mb-1">
+                    Fetch Failed
+                  </h4>
+                  <p className="text-sm font-manrope text-[var(--on-error-container)]/80 mb-3">
+                    {error}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setError("")}
+                      className="text-xs font-bold text-[var(--on-error-container)] hover:underline flex items-center gap-1 font-inter"
+                    >
+                      Dismiss <CloseIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Article Content Wrapper */}
@@ -363,16 +419,13 @@ export default function Home() {
                         </button>
                         <button 
                           onClick={toggleSaveArticle}
-                          disabled={savingArticle}
                           className={`text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
                             isArticleSaved 
-                            ? 'bg-[var(--primary)] text-[var(--on-primary)]' 
-                            : 'bg-[var(--surface-container-high)] text-[var(--on-surface)] hover:bg-[var(--surface-container-highest)]'
+                            ? 'bg-[var(--primary)] text-[var(--on-primary)] shadow-sm'
+                            : 'bg-[var(--surface-container-high)] text-[var(--on-surface)] hover:bg-[var(--surface-container-highest)] hover:shadow-sm'
                           }`}
                         >
-                          {savingArticle ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : isArticleSaved ? (
+                          {isArticleSaved ? (
                             <FileText className="h-3 w-3" />
                           ) : (
                             <Save className="h-3 w-3" />
@@ -565,6 +618,33 @@ export default function Home() {
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Global Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]"
+          >
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-full shadow-2xl border ${
+              toast.type === 'error'
+                ? 'bg-[var(--error-container)] border-[var(--error)]/20 text-[var(--on-error-container)]'
+                : 'bg-[var(--surface-container-highest)] border-[var(--outline-variant)]/20 text-[var(--on-surface)]'
+            }`}>
+              {toast.type === 'error' ? (
+                <AlertCircle className="h-5 w-5" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-[var(--primary)]" />
+              )}
+              <span className="font-inter text-sm font-medium pr-2">
+                {toast.message}
+              </span>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
