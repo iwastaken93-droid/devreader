@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const search = searchParams.get('search') || '';
     const collectionId = searchParams.get('collectionId');
 
-    let whereClause: any = { userId: user.id };
+    const whereClause: any = { userId: user.id };
 
     if (search) {
       whereClause.code = { contains: search, mode: 'insensitive' };
